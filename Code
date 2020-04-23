@@ -1,0 +1,30 @@
+#Version 2.0: no need to input dates and data automatically works with most recent data. Scale factor based on maximum cases
+import folium
+import folium.plugins as plugins
+import numpy as np
+import pandas as pd
+
+#download database and drop columns
+df_test = pd.read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+df_test.drop(columns=["Province/State","Country/Region"],inplace= True)
+
+radius = 15 # input radius size
+scale_factor = max(df_test.max())/2 # input scale for counts : changes how intense the data appears
+
+#makes a LIST of dates in the most recent data. Used for making map list and map index
+dates = df_test.drop(columns=["Lat","Long"],inplace = False)
+dates = dates.columns.tolist()
+
+### iterate over every date, make a list of lat,long,cases, omitting 0 case data, and make a list readable for heatmap
+testdata = []
+for i in dates:
+    cols = ["Lat","Long", i]
+    df_test[i] = np.log(df_test[i]+.001)/np.log(scale_factor)
+    tempdf=df_test[df_test[i]>0]
+    templist = tempdf[cols].values.tolist()
+    testdata.append(templist)
+
+worldmap = folium.Map([0,0], zoom_start=2)
+heatmap = plugins.HeatMapWithTime(testdata,auto_play=True,radius=radius,use_local_extrema=False, index =dates, min_opacity=0, max_opacity=0.6, name="Confirmed CoViD Cases")
+heatmap.add_to(worldmap)
+worldmap
